@@ -1,0 +1,1352 @@
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Maintainer: amix the lucky stiff, http://amix.dk - amix@amix.dk
+"             TruthTracer, TruthTracer@gmail.com
+"
+" Version: 3.6 - 25/08/10 14:40:30
+"
+"
+" How_to_Install_on_Unix:
+"    $ mkdir ~/.vim_runtime
+"    $ svn co svn://orangoo.com/vim ~/.vim_runtime
+"    $ cat ~/.vim_runtime/install.sh
+"    $ sh ~/.vim_runtime/install.sh <system>
+"      <sytem> can be `mac`, `linux` or `windows`
+"
+" How_to_Upgrade:
+"    $ svn update ~/.vim_runtime
+"
+" Sections:
+"    -> General
+"    -> Session options
+"    -> VIM user interface
+"    -> Colors and Fonts
+"    -> Files and backups
+"    -> Text, tab and indent related
+"    -> Visual mode related
+"    -> Command mode related
+"    -> Moving around, tabs and buffers
+"    -> Statusline
+"    -> Parenthesis/bracket expanding
+"    -> General Abbrevs
+"    -> Editing mappings
+"
+"    -> Cope
+"    -> Minibuffer plugin
+"    -> Omni complete functions
+"    -> Python section
+"    -> JavaScript section
+"
+"
+" Plugins_Included:
+"     > minibufexpl.vim - http://www.vim.org/scripts/script.php?script_id=159
+"       Makes it easy to get an overview of buffers:
+"           info -> :e ~/.vim_runtime/plugin/minibufexpl.vim
+" 
+"     > bufexplorer - http://www.vim.org/scripts/script.php?script_id=42
+"       Makes it easy to switch between buffers:
+"           info -> :help bufExplorer
+"
+"     > yankring.vim - http://www.vim.org/scripts/script.php?script_id=1234
+"       Emacs's killring, useful when using the clipboard:
+"           info -> :help yankring
+"
+"     > surround.vim - http://www.vim.org/scripts/script.php?script_id=1697
+"       Makes it easy to work with surrounding text:
+"           info -> :help surround
+"
+"     > snipMate.vim - http://www.vim.org/scripts/script.php?script_id=2540
+"       Snippets for many languages (similar to TextMate's):
+"           info -> :help snipMate
+"
+"     > mru.vim - http://www.vim.org/scripts/script.php?script_id=521
+"       Plugin to manage Most Recently Used (MRU) files:
+"           info -> :e ~/.vim_runtime/plugin/mru.vim
+""
+"  Revisions:
+"     > 3.6: Added lots of stuff (colors, Vim 7.3 persistent undo etc.)
+"     > 3.5: Paste mode is now shown in status line  if you are in paste mode
+"     > 3.4: Added mru.vim
+"     > 3.3: Added syntax highlighting for Mako mako.vim 
+"     > 3.2: Turned on python_highlight_all for better syntax
+"            highlighting for Python
+"     > 3.1: Added revisions ;) and bufexplorer.vim
+"
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => General
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+set nocompatible
+
+" Sets how many lines of history VIM has to remember
+set history=4096
+
+" Enable filetype plugin
+filetype plugin on
+filetype indent on
+
+" Set to auto read when a file is changed from the outside
+set autoread
+
+" With a map leader it's possible to do extra key combinations
+" like <leader>w saves the current file
+let mapleader = ","
+let g:mapleader = ","
+
+" Fast saving
+nmap <leader>w :w!<cr>
+
+if MySys() == "windows"
+    " Fast editing of the .vimrc
+    map <leader>erc :e! ~/_vimrt/vimrc<cr>
+
+    " When vimrc is edited, reload it
+    autocmd! bufwritepost vimrc source ~/_vimrt/vimrc
+else
+    " Fast editing of the .vimrc
+    map <leader>erc :e! ~/.vimrt/vimrc<cr>
+
+    " When vimrc is edited, reload it
+    autocmd! bufwritepost vimrc source ~/.vimrt/vimrc
+endif
+
+function! OnEnter()
+endfunction
+
+function! OnLeave()
+    call SaveSession('last')
+endfunction
+
+autocmd VimEnter * :call OnEnter()
+autocmd VimLeave * :call OnLeave()
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Session options
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+let g:yankring_history_dir = "~/.vimrt/data/"
+
+" make sure it can save viminfo 
+set viminfo+=!
+set viminfo+=n~/.vimrt/data/.viminfo
+
+"Remeber open buffers on close
+set viminfo^=%
+
+" When editing a file, always jump to the last known cursor position.
+" Don't do it when the position is invalid or when inside an event handler
+" (happens when dropping a file on gvim).
+autocmd BufReadPost *
+\   if line("'\"") > 0 && line("'\"") <= line("$") |
+\       exe "normal g`\"" |
+\   endif
+
+function! ShowPluginWindows(show)
+    if a:show == 1
+        NERDTreeToggle
+        TMiniBufExplorer
+    else
+        CMiniBufExplorer
+        NERDTreeClose
+    endif
+endfunction
+
+function! SaveSession(name)
+    " Close these plugins, do not save their status
+    call ShowPluginWindows(0)
+
+    " blank,buffers,curdir,folds,globals,help,localoptions,options,resize,tabpages,winpos,winsize
+    set sessionoptions=buffers,curdir,folds
+    exec "mksession! ~/.vimrt/data/." . a:name . ".files.vim"
+    set sessionoptions=buffers,curdir,folds,globals,localoptions,resize,tabpages,winpos,winsize
+    exec "mksession! ~/.vimrt/data/." . a:name . ".vim"
+
+    exec "wviminfo! ~/.vimrt/data/." . a:name . ".viminfo"
+
+    call ShowPluginWindows(1)
+endfunction
+
+function! LoadSession(name)
+    " minibufexplorer plugin will make things crazy while restore session, so close it before restore
+    call ShowPluginWindows(0)
+    
+    exec "source ~/.vimrt/data/." . a:name . ".vim"
+    exec "rviminfo ~/.vimrt/data/." . a:name . ".viminfo"
+    
+    call ShowPluginWindows(1)
+endfunction
+
+command! -nargs=1 LoadSession :call LoadSession('<args>')
+command! -nargs=1 SaveSession :call SaveSession('<args>')
+command! LoadLastSession execute "call LoadSession('last')"
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => VIM user interface
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Set 7 lines to the curors - when moving vertical..
+set so=7
+
+set wildmenu "Turn on WiLd menu
+
+set ruler "Always show current position
+"set rulerformat=
+
+set cmdheight=2 "The commandbar height
+
+set hid "Change buffer - without saving
+
+" Set backspace config
+set backspace=eol,start,indent
+set whichwrap+=<,>,h,l
+
+set ignorecase "Ignore case when searching
+set smartcase
+
+set hlsearch "Highlight search things
+
+set incsearch "Make search act like search in modern browsers
+set nolazyredraw "Don't redraw while executing macros 
+
+set magic "Set magic on, for regular expressions
+
+set showmatch "Show matching bracets when text indicator is over them
+set matchtime=0 "How many tenths of a second to blink
+
+" No sound on errors
+set noerrorbells
+set novisualbell
+set t_vb=
+set tm=500
+set fdm=marker
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Colors and Fonts
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+if &term =~ "xterm"
+    if has("terminfo")
+        set t_Co=256
+        set t_Sf=[3%dm
+        set t_Sb=[4%dm
+    else
+        set t_Co=8
+        set t_Sf=[3%dm
+        set t_Sb=[4%dm
+    endif
+endif
+
+" disable Background Color Erase (BCE) by clearing the t_ut terminal option
+" http://sunaku.github.io/vim-256color-bce.html
+" http://vimdoc.sourceforge.net/htmldoc/term.html#terminal-options
+set t_ut=
+
+" Set font according to system
+if MySys() == "mac"
+  set gfn=Menlo:h14
+  set shell=/bin/bash
+elseif MySys() == "windows"
+  set gfn=Bitstream\ Vera\ Sans\ Mono:h10
+elseif MySys() == "linux"
+  set gfn=Monospace\ 10
+  set shell=/bin/bash
+endif
+
+" Set the number of lines
+set number
+
+if has("gui_running")
+  set guioptions-=T
+  set t_Co=256
+  set background=dark
+  colorscheme peaksea
+else
+  set background=dark
+  colorscheme lucius " 256_asu1dark herald louver lucius vcbc
+endif
+
+set encoding=utf-8
+set termencoding=utf-8
+set fileencodings=utf-8,chinese
+try
+    lang en_US
+catch
+endtry
+
+set ffs=unix,dos,mac "Default file types
+
+syntax enable "Enable syntax hl
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Files, backups and undo
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Turn backup off, since most stuff is in SVN, git anyway...
+"set nobackup
+"set nowb
+"set noswapfile
+
+" Backup files, swap files and persistent undo
+try
+    if MySys() == "windows"
+        set undodir=C:\Windows\Temp
+        set directory=C:\Windows\Temp
+        set backupdir=C:\Windows\Temp
+    else
+        set undodir=~/.vimrt/data/temp
+        set directory=~/.vimrt/data/temp 
+        set backupdir=~/.vimrt/data/temp
+    endif
+    
+    set undofile
+catch
+endtry
+
+set undolevels=4096
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Text, tab, folding and indent related
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+set expandtab
+set shiftwidth=4
+set tabstop=4
+set softtabstop=5
+set smarttab
+
+set lbr
+set tw=500
+set wrap "Wrap lines
+
+set pastetoggle=<F6>
+set ai "Auto indent
+set si "Smart indet
+set cindent
+set cinoptions={0,1s,t0,n-2,p2s,(03s,=.5s,>1s,=1s,:1s
+
+"set colorcolumn=5,9,13,17
+"set cursorcolumn
+set cursorline
+set list listchars=tab:>\ ,trail:· " eol:$,tab:>-,trail:~,extends:>,precedes:<
+
+hi CursorLine   term=underline cterm=underline
+"hi CursorColumn term= cterm=
+
+set foldmethod=syntax
+set foldlevel=1
+
+""""""""""""""""""""""""""""""
+" => Visual mode related
+""""""""""""""""""""""""""""""
+" NOTICE: Really useful!
+
+"  In visual mode when you press * or # to search for the current selection
+vnoremap <silent> * :call VisualSelection('f')<CR>
+vnoremap <silent> # :call VisualSelection('b')<CR>
+
+" When you press gv you vimgrep after the selected text
+vnoremap <silent> gv :call VisualSelection('gv')<CR>
+
+" Some useful keys for vimgrep
+"map <leader>g :vimgrep // **/*.*<left><left><left><left><left><left><left><left>
+map <F3> :execute "vimgrep /" . expand("<cword>") . "/j **/*.*" <Bar> cw<CR>
+map <leader>g :execute "vimgrep /" . expand("<cword>") . "/j **/*.*" <Bar> cw
+map <leader><space> :vimgrep // <C-R>%<C-A><right><right><right><right><right><right><right><right><right>
+
+" When you press <leader>r you can search and replace the selected text
+vnoremap <silent> <leader>r :call VisualSelection('replace')<CR>
+
+"
+" From an idea by Michael Naumann
+" 
+function! CmdLine(str)
+    exe "menu Foo.Bar :" . a:str
+    emenu Foo.Bar
+    unmenu Foo
+endfunction 
+
+function! VisualSelection(direction) range
+    let l:saved_reg = @"
+    execute "normal! vgvy"
+
+    let l:pattern = escape(@", '\\/.*$^~[]')
+    let l:pattern = substitute(l:pattern, "\n$", "", "")
+
+    if a:direction == 'b'
+        execute "normal ?" . l:pattern . "^M"
+    elseif a:direction == 'gv'
+        call CmdLine("vimgrep " . '/'. l:pattern . '/' . ' **/*.')
+    elseif a:direction == 'replace'
+        call CmdLine("%s" . '/'. l:pattern . '/')
+    elseif a:direction == 'f'
+        execute "normal /" . l:pattern . "^M"
+    endif
+
+    let @/ = l:pattern
+    let @" = l:saved_reg
+endfunction
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Command mode related
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Smart mappings on the command line
+cno $h e ~/
+cno $d c <C-\>eCurrentFileDir("e")<cr>
+cno $j e ./
+cno $c e <C-\>eCurrentFileDir("e")<cr>
+
+" $q is super useful when browsing on the command line
+cno $q <C-\>eDeleteTillSlash()<cr>
+
+" Bash like keys for the command line
+cnoremap <C-A>		<Home>
+cnoremap <C-E>		<End>
+cnoremap <C-K>		<C-U>
+
+cnoremap <C-P> <Up>
+cnoremap <C-N> <Down>
+
+" Useful on some European keyboards
+map ½ $
+imap ½ $
+vmap ½ $
+cmap ½ $
+
+
+func! Cwd()
+  let cwd = getcwd()
+  return "e " . cwd 
+endfunc
+
+func! DeleteTillSlash()
+  let g:cmd = getcmdline()
+  if MySys() == "linux" || MySys() == "mac"
+    let g:cmd_edited = substitute(g:cmd, "\\(.*\[/\]\\).*", "\\1", "")
+  else
+    let g:cmd_edited = substitute(g:cmd, "\\(.*\[\\\\]\\).*", "\\1", "")
+  endif
+  if g:cmd == g:cmd_edited
+    if MySys() == "linux" || MySys() == "mac"
+      let g:cmd_edited = substitute(g:cmd, "\\(.*\[/\]\\).*/", "\\1", "")
+    else
+      let g:cmd_edited = substitute(g:cmd, "\\(.*\[\\\\\]\\).*\[\\\\\]", "\\1", "")
+    endif
+  endif   
+  return g:cmd_edited
+endfunc
+
+func! CurrentFileDir(cmd)
+  return a:cmd . " " . expand("%:p:h") . "/"
+endfunc
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Moving around, tabs and buffers
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"Useful when moving accross long lines
+map j gj
+map k gk
+
+" Map space to / (search) and c-space to ? (backgwards search)
+map <space> /
+map <c-space> ?
+map <silent> <leader><cr> :noh<cr>
+
+" Smart way to move btw. windows
+map <C-j> <C-W>j
+map <C-k> <C-W>k
+map <C-h> <C-W>h
+map <C-l> <C-W>l
+
+" Close the current buffer
+map <leader>bd :Bclose<cr>
+
+" Close all the buffers
+map <leader>ba :1,300 bd!<cr>
+
+" Use the arrows to something usefull
+map <right> :bn<cr>
+map <left> :bp<cr>
+
+" Tab configuration
+map <leader>tn :tabnew! %<cr>
+map <leader>te :tabedit 
+map <leader>tc :tabclose<cr>
+map <leader>tm :tabmove 
+
+" When pressing <leader>cd switch to the directory of the open buffer
+map <leader>cd :cd %:p:h<cr>
+
+
+command! Bclose call <SID>BufcloseCloseIt()
+function! <SID>BufcloseCloseIt()
+   let l:currentBufNum = bufnr("%")
+   let l:alternateBufNum = bufnr("#")
+
+   if buflisted(l:alternateBufNum)
+     buffer #
+   else
+     bnext
+   endif
+
+   if bufnr("%") == l:currentBufNum
+     new
+   endif
+
+   if buflisted(l:currentBufNum)
+     execute("bdelete! ".l:currentBufNum)
+   endif
+endfunction
+
+" Specify the behavior when switching between buffers 
+try
+  set switchbuf=usetab
+  set stal=2
+catch
+endtry
+
+" Return to last edit position (You want this!) *N*
+"autocmd BufReadPost *
+"     \ if line("'\"") > 0 && line("'\"") <= line("$") |
+"     \   exe "normal! g`\"" |
+"     \ endif
+
+
+""""""""""""""""""""""""""""""
+" => Statusline
+""""""""""""""""""""""""""""""
+" Always hide the statusline
+set laststatus=2
+
+"Git branch
+function! GitBranch()
+    try
+        let branch = system("git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* //'")
+    catch
+        return ''
+    endtry
+
+    if branch != ''
+        return '   Git Branch: ' . substitute(branch, '\n', '', 'g')
+    en
+
+    return ''
+endfunction
+
+function! CurDir()
+    return substitute(getcwd(), '/Users/amir/', "~/", "g")
+endfunction
+
+function! HasPaste()
+    if &paste
+        return 'PASTE MODE  '
+    en
+    return ''
+endfunction
+
+function! SetStatusline()
+    hi StatuslineBufNr      cterm=none ctermfg=0 ctermbg=246  " buffer number
+    hi StatuslineFlag       cterm=none ctermfg=0 ctermbg=154  " flags
+    hi StatuslinePath       cterm=none ctermfg=0 ctermbg=6    " path
+    hi StatuslineFileName   cterm=none ctermfg=0 ctermbg=7    " file name
+    hi StatuslineFileType   cterm=none ctermfg=0 ctermbg=252  " file type
+    hi StatuslineFileFormat cterm=none ctermfg=0 ctermbg=252  " file format
+    hi StatuslineFileEnc    cterm=none ctermfg=0 ctermbg=246  " encoding
+    hi StatuslineFileChar   cterm=none ctermfg=0 ctermbg=246  " current char
+    hi StatuslinePosition   cterm=none ctermfg=0 ctermbg=252  " line position
+    hi StatuslinePercent    cterm=none ctermfg=0 ctermbg=252  " position percentage
+    hi StatuslineCapsBuddy  cterm=none ctermfg=0 ctermbg=118  " #%{exists('*CapsLockSTATUSLINE')?CapsLockSTATUSLINE():''}
+    hi StatuslineTime       cterm=none ctermfg=0 ctermbg=246  " Time
+
+    " Format the statusline
+    set statusline=%{HasPaste()}%F%m%r%h\ %w\ \ CWD\ %r%{CurDir()}%h\ %#StatuslineBufNr#\ %-1.2n\ 
+    set statusline+=%#StatuslineFileFormat#\ %{&ff=='unix'?'\\n':(&ff=='mac'?'\\r':'\\r\\n')}\ 
+    set statusline+=%#StatuslineFileEnc#\ %{&fenc!=''?&fenc:&enc}\ 
+    set statusline+=%#StatuslineFileType#\ %Y\ 
+    set statusline+=%=%#StatuslinePosition#\ L:%l/%L\ C:%v\ 
+    set statusline+=%#StatuslineFileChar#\ 0x%04.4B\ %#StatuslinePercent#\ %3p%%\ 
+    set statusline+=%#StatuslineTime#\ %-16{strftime(\"%Y-%m-%d\ %H:%M\")}\ 
+    " extra characters appear on ssh xterm, e.g holding alt+w. So I comment GitBranch section in statusline
+    "set statusline+=\ %{GitBranch()}
+
+endfunc
+
+command! StatuslineReload execute 'call SetStatusline()'
+call SetStatusline()
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Parenthesis/bracket expanding
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+vnoremap $1 <esc>`>a)<esc>`<i(<esc>
+vnoremap $2 <esc>`>a]<esc>`<i[<esc>
+vnoremap $3 <esc>`>a}<esc>`<i{<esc>
+vnoremap $$ <esc>`>a"<esc>`<i"<esc>
+vnoremap $q <esc>`>a'<esc>`<i'<esc>
+vnoremap $e <esc>`>a"<esc>`<i"<esc>
+
+" Map auto complete of (, ", ', [
+inoremap $1 ()<esc>i
+inoremap $2 []<esc>i
+inoremap $3 {}<esc>i
+inoremap $4 {<esc>o}<esc>O
+inoremap $q ''<esc>i
+inoremap $e ""<esc>i
+inoremap $t <><esc>i
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => General Abbrevs
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+iab xdate <c-r>=strftime("%d/%m/%y %H:%M:%S")<cr>
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Editing mappings
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"Remap VIM 0
+map 0 ^
+
+"Move a line of text using ALT+[jk] or Comamnd+[jk] on mac
+nmap <M-j> mz:m+<cr>`z
+nmap <M-k> mz:m-2<cr>`z
+vmap <M-j> :m'>+<cr>`<my`>mzgv`yo`z
+vmap <M-k> :m'<-2<cr>`>my`<mzgv`yo`z
+
+if MySys() == "mac"
+  nmap <D-j> <M-j>
+  nmap <D-k> <M-k>
+  vmap <D-j> <M-j>
+  vmap <D-k> <M-k>
+endif
+
+"Delete trailing white space, useful for Python ;)
+func! DeleteTrailingWS()
+  exe "normal mz"
+  %s/\s\+$//ge
+  exe "normal `z"
+endfunc
+autocmd BufWrite *.py :call DeleteTrailingWS()
+
+set guitablabel=%t
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Cope
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Do :help cope if you are unsure what cope is. It's super useful!
+map <leader>cc :botright cope<cr>
+map <leader>n :cn<cr>
+map <leader>p :cp<cr>
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" exVim settings
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" register buffer names of plugins.
+let g:ex_plugin_registered_bufnames = ["__MRU_Files__","-MiniBufExplorer-","__Tag_List__","\[Lookup File\]", "\[BufExplorer\]"] 
+
+" register filetypes of plugins.
+let g:ex_plugin_registered_filetypes = ["ex_plugin","ex_project","taglist","nerdtree"] 
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" exBufExplorer plugin
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" NOTE: the / can be mapped to other script ( for example exSearchComplete ), so here use nmap instead of nnoremap 
+if has("gui_running") "  the <alt> key is only available in gui mode.
+    if has ("mac")
+        nmap <unique> ı :EXBufExplorer<CR>:redraw<CR>/
+    else
+        nmap <unique> <M-B> :EXBufExplorer<CR>:redraw<CR>/
+    endif
+endif
+nnoremap <unique> <silent> <leader>be :EXBufExplorer<CR>
+nnoremap <unique> <leader>bk :EXAddBookmarkDirectly<CR>
+
+let g:exBE_backto_editbuf = 0
+let g:exBE_close_when_selected = 0
+
+
+""""""""""""""""""""""""""""""
+" => bufExplorer plugin
+""""""""""""""""""""""""""""""
+"let g:bufExplorerDefaultHelp=0
+"let g:bufExplorerShowRelativePath=1
+"let g:bufExplorerFindActive=1
+"let g:bufExplorerSortBy='name'
+"map <leader>be :BufExplorer<cr>
+
+
+""""""""""""""""""""""""""""""
+" => minibufexpl plugin
+""""""""""""""""""""""""""""""
+"let g:miniBufExplVSplit = 30
+let g:miniBufExplSplitBelow = 0
+let g:miniBufExplModSelTarget = 1
+let g:miniBufExplUseSingleClick = 1
+let g:miniBufExplMapWindowNavVim = 1
+let g:miniBufExplMapWindowNavArrows = 1
+let g:miniBufExplMapCTabSwitchBufs = 1
+let g:miniBufExplMapCTabSwitchWindows = 1
+
+autocmd BufRead,BufNew,BufDelete :call UMiniBufExplorer
+
+map <leader>mb :TMiniBufExplorer<cr>
+
+
+""""""""""""""""""""""""""""""
+" lookupfile plugin
+""""""""""""""""""""""""""""""
+let g:LookupFile_DisableDefaultMap = 1          " Default key mapping is F5
+"let g:LookupFile_MinPatLength = 1
+"let g:LookupFile_PreserveLastPattern = 0        "不保存上次查找的字符串
+"let g:LookupFile_PreservePatternHistory = 1     "保存查找历史
+"let g:LookupFile_AlwaysAcceptFirst = 1          "回车打开第一个匹配项目
+"let g:LookupFile_AllowNewFiles = 0              "不允许创建不存在的文件
+"if filereadable("./filenametags")                "设置tag文件的名字
+"    let g:LookupFile_TagExpr = '"./filenametags"'
+"endif
+nmap <silent> <leader>lt :LUTags<cr>
+nmap <silent> <leader>lb :LUBufs<cr>
+nmap <silent> <leader>lw :LUWalk<cr>
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Omni complete functions
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+set omnifunc=syntaxcomplete#Complete
+
+" set complete=.,w,b,u,t,i,k
+" set completeopt=menuone,menu,preview,longest
+
+"highlight   Pmenu         ctermfg=0 ctermbg=2
+highlight   Pmenu         ctermbg=238 gui=bold
+highlight   PmenuSel      ctermfg=0 ctermbg=7
+highlight   PmenuSbar     ctermfg=7 ctermbg=0
+highlight   PmenuThumb    ctermfg=0 ctermbg=7
+
+" set omnifunc?
+autocmd FileType css setlocal omnifunc=csscomplete#CompleteCSS
+autocmd FileType html,markdown setlocal omnifunc=htmlcomplete#CompleteTags
+autocmd FileType javascript setlocal omnifunc=javascriptcomplete#CompleteJS
+autocmd FileType php setlocal omnifunc=phpcomplete#CompletePHP
+autocmd FileType python setlocal omnifunc=pythoncomplete#Complete
+autocmd FileType xml setlocal omnifunc=xmlcomplete#CompleteTags
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" omnicppcomplete plugin
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+let OmniCpp_GlobalScopeSearch   = 1
+let OmniCpp_DisplayMode         = 1
+let OmniCpp_ShowScopeInAbbr     = 0 "do not show namespace in pop-up
+let OmniCpp_ShowPrototypeInAbbr = 1 "show prototype in pop-up
+let OmniCpp_ShowAccess          = 1 "show access in pop-up
+let OmniCpp_SelectFirstItem     = 1 "select first item in pop-up
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Spell checking
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"Pressing ,ss will toggle and untoggle spell checking
+map <leader>ss :setlocal spell!<cr>
+
+"Shortcuts using <leader>
+map <leader>sn ]s
+map <leader>sp [s
+map <leader>sa zg
+map <leader>s? z=
+
+
+""""""""""""""""""""""""""""""
+" => Python section
+""""""""""""""""""""""""""""""
+let python_highlight_all = 1
+au FileType python syn keyword pythonDecorator True None False self
+
+au BufNewFile,BufRead *.jinja set syntax=htmljinja
+au BufNewFile,BufRead *.mako set ft=mako
+
+au FileType python inoremap <buffer> $r return 
+au FileType python inoremap <buffer> $i import 
+au FileType python inoremap <buffer> $p print 
+au FileType python inoremap <buffer> $f #--- PH ----------------------------------------------<esc>FP2xi
+au FileType python map <buffer> <leader>1 /class 
+au FileType python map <buffer> <leader>2 /def 
+au FileType python map <buffer> <leader>C ?class 
+au FileType python map <buffer> <leader>D ?def 
+
+
+""""""""""""""""""""""""""""""
+" => JavaScript section
+"""""""""""""""""""""""""""""""
+au FileType javascript call JavaScriptFold()
+au FileType javascript setl fen
+au FileType javascript setl nocindent
+
+au FileType javascript imap <c-t> AJS.log();<esc>hi
+au FileType javascript imap <c-a> alert();<esc>hi
+
+au FileType javascript inoremap <buffer> $r return 
+au FileType javascript inoremap <buffer> $f //--- PH ----------------------------------------------<esc>FP2xi
+
+function! JavaScriptFold() 
+    setl foldmethod=syntax
+    setl foldlevelstart=1
+    syn region foldBraces start=/{/ end=/}/ transparent fold keepend extend
+
+    function! FoldText()
+        return substitute(getline(v:foldstart), '{.*', '{...}', '')
+    endfunction
+    setl foldtext=FoldText()
+endfunction
+
+
+""""""""""""""""""""""""""""""
+" => MRU plugin
+""""""""""""""""""""""""""""""
+let MRU_File = $HOME . '/.vimrt/data/.vim_mru_files'
+let MRU_Max_Entries = 400
+map <leader>f :MRU<CR>
+
+
+""""""""""""""""""""""""""""""
+" => Command-T
+""""""""""""""""""""""""""""""
+let g:CommandTMaxHeight = 15
+set wildignore+=*.o,*.obj,.git,*.pyc
+noremap <leader>y :CommandTFlush<cr>
+"noremap! <leader>j :PeepOpen<cr>
+
+
+""""""""""""""""""""""""""""""
+" => Vim grep
+""""""""""""""""""""""""""""""
+let Grep_Skip_Dirs = 'RCS CVS SCCS .svn generated'
+set grepprg=/bin/grep\ -nH
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => MISC
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Remove the Windows ^M - when the encodings gets messed up
+noremap <Leader>m mmHmt:%s/<C-V><cr>//ge<cr>'tzt'm
+
+"Quickly open a buffer for scripbble
+map <leader>q :e ~/buffer<cr>
+au BufRead,BufNewFile ~/buffer iab <buffer> xh1 ===========================================
+
+map <leader>pp :setlocal paste!<cr>
+
+map <leader>bb :cd ..<cr>
+
+map <leader>ct :cd ~/Desktop/Todoist/todoist<cr>
+map <leader>cw :cd ~/Desktop/Wedoist/wedoist<cr>
+map <leader>cp :cd ~/Desktop/PlurkGit/trunk<cr>
+
+if MySys() == "mac"
+    if has("gui_running")
+      set fuoptions=maxvert,maxhorz
+      au GUIEnter * set fullscreen
+    endif
+endif
+
+
+""""""""""""""""""""""""""""""
+" SuperTab plugin
+""""""""""""""""""""""""""""""
+let g:SuperTabDefaultCompletionType = "<C-X><C-O>"
+"let g:SuperTabDefaultCompletionType = "context"
+
+
+""""""""""""""""""""""""""""""
+" bookmarking plugin
+""""""""""""""""""""""""""""""
+map <silent> bk :ToggleBookmark<CR>
+map <silent> bn :NextBookmark<CR>
+map <silent> bp :PreviousBookmark<CR>
+
+
+""""""""""""""""""""""""""""""
+" cscope settings
+""""""""""""""""""""""""""""""
+set cscopequickfix=s-,c-,d-,i-,t-,e-
+
+" This tests to see if vim was configured with the '--enable-cscope' option
+" when it was compiled.  If it wasn't, time to recompile vim... 
+if has("cscope")
+
+    """"""""""""" Standard cscope/vim boilerplate
+
+    " use both cscope and ctag for 'ctrl-]', ':ta', and 'vim -t'
+    set cscopetag
+
+    " check cscope for definition of a symbol before checking ctags: set to 1
+    " if you want the reverse search order.
+    set csto=0
+
+    " add any cscope database in current directory
+    if filereadable("cscope.out")
+        cs add cscope.out  
+    " else add the database pointed to by environment variable 
+    elseif $CSCOPE_DB != ""
+        cs add $CSCOPE_DB
+    endif
+
+    " show msg when any other cscope db added
+    set cscopeverbose  
+
+
+    """"""""""""" My cscope/vim key mappings
+    "
+    " The following maps all invoke one of the following cscope search types:
+    "
+    "   's'   symbol: find all references to the token under cursor
+    "   'g'   global: find global definition(s) of the token under cursor
+    "   'c'   calls:  find all calls to the function name under cursor
+    "   't'   text:   find all instances of the text under cursor
+    "   'e'   egrep:  egrep search for the word under cursor
+    "   'f'   file:   open the filename under cursor
+    "   'i'   includes: find files that include the filename under cursor
+    "   'd'   called: find functions that function under cursor calls
+    "
+    " Below are three sets of the maps: one set that just jumps to your
+    " search result, one that splits the existing vim window horizontally and
+    " diplays your search result in the new window, and one that does the same
+    " thing, but does a vertical split instead (vim 6 only).
+    "
+    " I've used CTRL-\ and CTRL-@ as the starting keys for these maps, as it's
+    " unlikely that you need their default mappings (CTRL-\'s default use is
+    " as part of CTRL-\ CTRL-N typemap, which basically just does the same
+    " thing as hitting 'escape': CTRL-@ doesn't seem to have any default use).
+    " If you don't like using 'CTRL-@' or CTRL-\, , you can change some or all
+    " of these maps to use other keys.  One likely candidate is 'CTRL-_'
+    " (which also maps to CTRL-/, which is easier to type).  By default it is
+    " used to switch between Hebrew and English keyboard mode.
+    "
+    " All of the maps involving the <cfile> macro use '^<cfile>$': this is so
+    " that searches over '#include <time.h>" return only references to
+    " 'time.h', and not 'sys/time.h', etc. (by default cscope will return all
+    " files that contain 'time.h' as part of their name).
+
+
+    " To do the first type of search, hit 'CTRL-\', followed by one of the
+    " cscope search types above (s,g,c,t,e,f,i,d).  The result of your cscope
+    " search will be displayed in the current window.  You can use CTRL-T to
+    " go back to where you were before the search.  
+    "
+
+    nmap <C-\>s :cs find s <C-R>=expand("<cword>")<CR><CR>	
+    nmap <C-\>g :cs find g <C-R>=expand("<cword>")<CR><CR>	
+    nmap <C-\>c :cs find c <C-R>=expand("<cword>")<CR><CR>	
+    nmap <C-\>t :cs find t <C-R>=expand("<cword>")<CR><CR>	
+    nmap <C-\>e :cs find e <C-R>=expand("<cword>")<CR><CR>	
+    nmap <C-\>f :cs find f <C-R>=expand("<cfile>")<CR><CR>	
+    nmap <C-\>i :cs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
+    nmap <C-\>d :cs find d <C-R>=expand("<cword>")<CR><CR>	
+
+
+    " Using 'CTRL-spacebar' (intepreted as CTRL-@ by vim) then a search type
+    " makes the vim window split horizontally, with search result displayed in
+    " the new window.
+    "
+    " (Note: earlier versions of vim may not have the :scs command, but it
+    " can be simulated roughly via:
+    "    nmap <C-@>s <C-W><C-S> :cs find s <C-R>=expand("<cword>")<CR><CR>	
+
+    nmap <C-@>s :scs find s <C-R>=expand("<cword>")<CR><CR>	
+    nmap <C-@>g :scs find g <C-R>=expand("<cword>")<CR><CR>	
+    nmap <C-@>c :scs find c <C-R>=expand("<cword>")<CR><CR>	
+    nmap <C-@>t :scs find t <C-R>=expand("<cword>")<CR><CR>	
+    nmap <C-@>e :scs find e <C-R>=expand("<cword>")<CR><CR>	
+    nmap <C-@>f :scs find f <C-R>=expand("<cfile>")<CR><CR>	
+    nmap <C-@>i :scs find i ^<C-R>=expand("<cfile>")<CR>$<CR>	
+    nmap <C-@>d :scs find d <C-R>=expand("<cword>")<CR><CR>	
+
+
+    " Hitting CTRL-space *twice* before the search type does a vertical 
+    " split instead of a horizontal one (vim 6 and up only)
+    "
+    " (Note: you may wish to put a 'set splitright' in your .vimrc
+    " if you prefer the new window on the right instead of the left
+
+    nmap <C-@><C-@>s :vert scs find s <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-@><C-@>g :vert scs find g <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-@><C-@>c :vert scs find c <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-@><C-@>t :vert scs find t <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-@><C-@>e :vert scs find e <C-R>=expand("<cword>")<CR><CR>
+    nmap <C-@><C-@>f :vert scs find f <C-R>=expand("<cfile>")<CR><CR>	
+    nmap <C-@><C-@>i :vert scs find i ^<C-R>=expand("<cfile>")<CR>$<CR>	
+    nmap <C-@><C-@>d :vert scs find d <C-R>=expand("<cword>")<CR><CR>
+
+
+    """"""""""""" key map timeouts
+    "
+    " By default Vim will only wait 1 second for each keystroke in a mapping.
+    " You may find that too short with the above typemaps.  If so, you should
+    " either turn off mapping timeouts via 'notimeout'.
+    "
+    "set notimeout 
+    "
+    " Or, you can keep timeouts, by uncommenting the timeoutlen line below,
+    " with your own personal favorite value (in milliseconds):
+    "
+    "set timeoutlen=4000
+    "
+    " Either way, since mapping timeout settings by default also set the
+    " timeouts for multicharacter 'keys codes' (like <F1>), you should also
+    " set ttimeout and ttimeoutlen: otherwise, you will experience strange
+    " delays as vim waits for a keystroke after you hit ESC (it will be
+    " waiting to see if the ESC is actually part of a key code like <F1>).
+    "
+    "set ttimeout 
+    "
+    " personally, I find a tenth of a second to work well for key code
+    " timeouts. If you experience problems and have a slow terminal or network
+    " connection, set it higher.  If you don't set ttimeoutlen, the value for
+    " timeoutlent (default: 1000 = 1 second, which is sluggish) is used.
+    "
+    "set ttimeoutlen=100
+
+endif
+
+
+""""""""""""""""""""""""""""""
+" vimgdb plugin
+""""""""""""""""""""""""""""""
+"set previewheight=12
+"run macros/gdb_mappings.vim
+"set asm=0
+"set gdbprg=/usr/bin/gdb
+"map <ALT>w :bel 30vsplit gdb-variables<cr>
+
+
+""""""""""""""""""""""""""""""
+" taglist (ctags) plugin
+" 
+" Default keymappings
+"   <CR>          Jump to the location where the tag under cursor is
+"                 defined.
+"   o             Jump to the location where the tag under cursor is
+"                 defined in a new window.
+"   P             Jump to the tag in the previous (Ctrl-W_p) window.
+"   p             Display the tag definition in the file window and
+"                 keep the cursor in the taglist window itself.
+"   t             Jump to the tag in a new tab. If the file is already
+"                 opened in a tab, move to that tab.
+"   Ctrl-t        Jump to the tag in a new tab.
+"   <Space>       Display the prototype of the tag under the cursor.
+"                 For file names, display the full path to the file,
+"                 file type and the number of tags. For tag types, display the
+"                 tag type and the number of tags.
+"   u             Update the tags listed in the taglist window
+"   s             Change the sort order of the tags (by name or by order)
+"   d             Remove the tags for the file under the cursor
+"   x             Zoom-in or Zoom-out the taglist window
+"   +             Open a fold
+"   -             Close a fold
+"   *             Open all folds
+"   =             Close all folds
+"   [[            Jump to the beginning of the previous file
+"   <Backspace>   Jump to the beginning of the previous file
+"   ]]            Jump to the beginning of the next file
+"   <Tab>         Jump to the beginning of the next file
+"   q             Close the taglist window
+"   <F1>          Display help
+""""""""""""""""""""""""""""""
+if MySys() == "windows"
+    let Tlist_Ctags_Cmd = 'ctags'
+elseif MySys() == "linux"
+    let Tlist_Ctags_Cmd = '/usr/bin/ctags'
+endif
+
+let Tlist_Auto_Highlight_Tag = 1
+let Tlist_Auto_Open = 0
+let Tlist_Auto_Update = 1
+let Tlist_Close_On_Select = 0
+let Tlist_Compact_Format = 1
+let Tlist_Display_Prototype = 0
+let Tlist_Display_Tag_Scope = 1
+let Tlist_Enable_Fold_Column = 0
+let Tlist_Exit_OnlyWindow = 1
+let Tlist_File_Fold_Auto_Close = 1
+let Tlist_GainFocus_On_ToggleOpen = 0
+let Tlist_Hightlight_Tag_On_BufEnter = 1
+let Tlist_Inc_Winwidth = 0
+let Tlist_Max_Submenu_Items = 1
+let Tlist_Max_Tag_Length = 30
+let Tlist_Process_File_Always = 0
+let Tlist_Show_Menu = 1
+let Tlist_Show_One_File = 0
+let Tlist_Sort_Type = "order"
+let Tlist_Use_Horiz_Window = 0
+let Tlist_Use_Right_Window = 1
+let Tlist_WinHeight = 30
+let Tlist_WinWidth = 40
+
+map <leader>tl :TlistToggle<cr>
+"vmap <F11> <esc>:TlistToggle<cr>
+"imap <F11> <esc>:TlistToggle<cr>
+
+
+""""""""""""""""""""""""""""""
+" NERD tree plugin
+"
+" Default keymappings
+"   o.......Open files, directories and bookmarks....................|NERDTree-o|
+"   go......Open selected file, but leave cursor in the NERDTree.....|NERDTree-go|
+"   t.......Open selected node/bookmark in a new tab.................|NERDTree-t|
+"   T.......Same as 't' but keep the focus on the current tab........|NERDTree-T|
+"   i.......Open selected file in a split window.....................|NERDTree-i|
+"   gi......Same as i, but leave the cursor on the NERDTree..........|NERDTree-gi|
+"   s.......Open selected file in a new vsplit.......................|NERDTree-s|
+"   gs......Same as s, but leave the cursor on the NERDTree..........|NERDTree-gs|
+"   O.......Recursively open the selected directory..................|NERDTree-O|
+"   x.......Close the current nodes parent...........................|NERDTree-x|
+"   X.......Recursively close all children of the current node.......|NERDTree-X|
+"   e.......Edit the current dif.....................................|NERDTree-e|
+"   
+"   <CR>...............same as |NERDTree-o|.
+"   double-click.......same as the |NERDTree-o| map.
+"   middle-click.......same as |NERDTree-i| for files, same as
+"                      |NERDTree-e| for dirs.
+"   
+"   D.......Delete the current bookmark .............................|NERDTree-D|
+"   
+"   P.......Jump to the root node....................................|NERDTree-P|
+"   p.......Jump to current nodes parent.............................|NERDTree-p|
+"   K.......Jump up inside directories at the current tree depth.....|NERDTree-K|
+"   J.......Jump down inside directories at the current tree depth...|NERDTree-J|
+"   <C-J>...Jump down to the next sibling of the current directory...|NERDTree-C-J|
+"   <C-K>...Jump up to the previous sibling of the current directory.|NERDTree-C-K|
+"   
+"   C.......Change the tree root to the selected dir.................|NERDTree-C|
+"   u.......Move the tree root up one directory......................|NERDTree-u|
+"   U.......Same as 'u' except the old root node is left open........|NERDTree-U|
+"   r.......Recursively refresh the current directory................|NERDTree-r|
+"   R.......Recursively refresh the current root.....................|NERDTree-R|
+"   m.......Display the NERD tree menu...............................|NERDTree-m|
+"   cd......Change the CWD to the dir of the selected node...........|NERDTree-cd|
+"   
+"   I.......Toggle whether hidden files displayed....................|NERDTree-I|
+"   f.......Toggle whether the file filters are used.................|NERDTree-f|
+"   F.......Toggle whether files are displayed.......................|NERDTree-F|
+"   B.......Toggle whether the bookmark table is displayed...........|NERDTree-B|
+"   
+"   q.......Close the NERDTree window................................|NERDTree-q|
+"   A.......Zoom (maximize/minimize) the NERDTree window.............|NERDTree-A|
+"   ?.......Toggle the display of the quick help.....................|NERDTree-?|
+""""""""""""""""""""""""""""""
+
+let NERDTreeDirArrows = 0
+let NERDChristmasTree = 1
+let NERDTreeAutoCenter = 1
+let NERDTreeBookmarksFile = $HOME . '/.vimrt/data/.NerdBookmarks'
+let NERDTreeChDirMode = 2
+let NERDTreeHighlightCursorline = 1
+let NERDTreeMouseMode = 2
+let NERDTreeShowBookmarks = 1
+let NERDTreeShowFiles = 1
+let NERDTreeShowHidden = 1
+let NERDTreeShowLineNumbers = 1
+let NERDTreeWinPos = 'left'
+let NERDTreeWinSize = 32
+
+map <F2> :NERDTreeToggle<CR>
+map <leader>nf :NERDTreeFind<CR>
+"vmap <F10> <esc>:NERDTreeToggle<cr>
+"imap <F10> <esc>:NERDTreeToggle<cr>
+
+
+""""""""""""""""""""""""""""""
+" winmanager plugin
+""""""""""""""""""""""""""""""
+"map <c-w><c-f> :FirstExplorerWindow<cr>
+"map <c-w><c-b> :BottomExplorerWindow<cr>
+"map <c-w><c-t> :WMToggle<cr>
+
+
+""""""""""""""""""""""""""""""
+" Source Explorer plugin
+""""""""""""""""""""""""""""""
+" // The switch of the Source Explorer
+map <leader>se :SrcExplToggle<CR>
+
+" // Set the height of Source Explorer window
+let g:SrcExpl_winHeight = 8
+
+" // Set 100 ms for refreshing the Source Explorer
+let g:SrcExpl_refreshTime = 100
+
+" // Set "Enter" key to jump into the exact definition context
+" let g:SrcExpl_jumpKey = "<ENTER>"
+
+" // Set "Space" key for back from the definition context
+let g:SrcExpl_gobackKey = "<SPACE>"
+
+" // In order to Avoid conflicts, the Source Explorer should know what plugins
+" // are using buffers. And you need add their bufname into the list below
+" // according to the command ":buffers!"
+let g:SrcExpl_pluginList = [
+        \ "__Tag_List__",
+        \ "_NERD_tree_",
+        \ "Source_Explorer"
+    \ ]
+
+" // Enable/Disable the local definition searching, and note that this is not
+" // guaranteed to work, the Source Explorer doesn't check the syntax for now.
+" // It only searches for a match with the keyword according to command 'gd'
+let g:SrcExpl_searchLocalDef = 1
+
+" // Do not let the Source Explorer update the tags file when opening
+let g:SrcExpl_isUpdateTags = 0
+
+" // Use 'Exuberant Ctags' with '--sort=foldcase -R .' or '-L cscope.files' to
+" //  create/update a tags file
+let g:SrcExpl_updateTagsCmd = "ctags --sort=foldcase -R ."
+
+" // Set "<F12>" key for updating the tags file artificially
+let g:SrcExpl_updateTagsKey = "<F12>" 
+
+""""""""""""""""""""""""""""""
+" fswitch plugin
+""""""""""""""""""""""""""""""
+" fun SetShortCutForFSwitch()
+"     imap <unique> <silent> <buffer> <M-o> <Esc>:FSHere<CR>i
+"     nmap <unique> <silent> <buffer> <M-o> :FSHere<CR>
+" endfun
+" if has('autocmd')
+"     augroup mycppfiles
+"     au!
+"         au Filetype c,cpp call SetShortCutForFSwitch()
+"         au BufRead,BufNewFile *.h,*.hpp let b:fswitchdst = 'cpp,c'
+"         au BufRead,BufNewFile *.h,*.hpp let b:fswitchlocs
+"                     \ = 'reg:/include/src/,ifrel:|/include/|../src|,./'
+"         au BufRead,BufNewFile *.c,*.cpp let b:fswitch = 'h,hpp'
+"         au BufRead,BufNewFile *.c,*.cpp let b:fswitchlocs
+"                     \ = 'reg:/src/include/,ifrel:|/src/|../include|,./'
+"     augroup END
+" end
+
+""""""""""""""""""""""""""""""
+" Project plugin
+""""""""""""""""""""""""""""""
+let g:proj_flags="imstg"
+
+nmap <Leader>pr <Plug>ToggleProject
+
+
+""""""""""""""""""""""""""""""
+" exProject plugin
+""""""""""""""""""""""""""""""
+" NOTE: the / can be mapped to other script ( for example exSearchComplete ), so here use nmap instead of nnoremap 
+" NOTE: M-O equal to A-S-o, the S-o equal to O
+if has("gui_running") "  the <alt> key is only available in gui mode.
+    if has ("mac")
+        nmap <unique> Ø :EXProject<CR>:redraw<CR>/
+        nnoremap <unique> <silent> ∏ :EXProject<CR>
+    else
+        nmap <unique> <M-O> :EXProject<CR>:redraw<CR>/
+        nnoremap <unique> <silent> <M-P> :EXProject<CR>
+    endif
+endif
+nnoremap <unique> <leader>ff :EXProject<CR>:redraw<CR>/\[\l*\]\zs.*
+nnoremap <unique> <leader>fd :EXProject<CR>:redraw<CR>/\[\u\]\zs.*
+nnoremap <unique> <leader>fc :ExpjGotoCurrentFile<CR>
+
+let g:exPJ_backto_editbuf = 1
+let g:exPJ_close_when_selected = 0
+let g:exPJ_window_width = 32
+let g:exPJ_window_width_increment = 50
+
+"map <F3> :EXProject<CR>:redraw<CR>
+
+
+""""""""""""""""""""""""""""""
+" ShowMarks plugin
+" 
+" Default keymappings
+"   \mt : Toggles ShowMarks on and off.
+"   \mh : Hides an individual mark.
+"   \ma : Hides all marks in the current buffer.
+"   \mm : Places the next available mark. 
+"   m<letter> : named a mark
+""""""""""""""""""""""""""""""
+let g:showmarks_enable = 1
+let showmarks_include = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+" Ignore help, quickfix, non-modifiable buffers
+let showmarks_ignore_type = "hqm"
+" Hilight lower & upper marks
+let showmarks_hlline_lower = 1
+let showmarks_hlline_upper = 0 
+
+" For marks a-z
+hi clear ShowMarksHLl
+hi ShowMarksHLl term=bold cterm=none ctermbg=LightBlue gui=none guibg=LightBlue
+" For marks A-Z
+hi clear ShowMarksHLu
+hi ShowMarksHLu term=bold cterm=bold ctermbg=LightRed ctermfg=DarkRed gui=bold guibg=LightRed guifg=DarkRed
+" For all other marks
+hi clear ShowMarksHLo
+hi ShowMarksHLo term=bold cterm=bold ctermbg=LightYellow ctermfg=DarkYellow gui=bold guibg=LightYellow guifg=DarkYellow
+" For multiple marks on the same line.
+hi clear ShowMarksHLm
+hi ShowMarksHLm term=bold cterm=none ctermbg=LightBlue gui=none guibg=SlateBlue
+
+
+""""""""""""""""""""""""""""""
+" Indent Guides plugin 
+""""""""""""""""""""""""""""""
+let g:indent_guides_indent_levels = 32
+let g:indent_guides_color_change_percent = 10
+let g:indent_guides_guide_size = 4
+let g:indent_guides_start_level = 1
+let g:indent_guides_space_guides = 1
+let g:indent_guides_enable_on_vim_startup = 1
+
+" If you set this option to 0, be sure to manually define some highlight colors in an autocmd.
+let g:indent_guides_auto_colors = 1
+" set background=dark is used
+"autocmd VimEnter,Colorscheme * :hi IndentGuidesOdd  ctermbg=darkgrey
+"autocmd VimEnter,Colorscheme * :hi IndentGuidesEven ctermbg=darkgrey
+" set background=light is used
+"autocmd VimEnter,Colorscheme * :hi IndentGuidesOdd  ctermbg=white
+"autocmd VimEnter,Colorscheme * :hi IndentGuidesEven ctermbg=lightgrey
+
+""""""""""""""""""""""""""""""
+" zencoding plugin 
+""""""""""""""""""""""""""""""
+let g:user_zen_settings = {
+\   'indentation' : '  ',
+\   'perl' : {
+\     'aliases' : {
+\         'req' : 'require '
+\     },
+\     'snippets' : {
+\         'use' : "use strict\nuse warnings\n\n",
+\         'warn' : "warn \"|\";",
+\     }
+\   }
+\}
+
+let g:user_zen_expandabbr_key = '<C-W>'
+let g:use_zen_complete_tag = 1
+
+""""""""""""""""""""""""""""""
+" AuthorInfo plugin 
+""""""""""""""""""""""""""""""
+let g:vimrc_author = 'TruthTracer'
+let g:vimrc_email = 'TruthTracer@gmail.com'
+let g:vimrc_homepage = 'http://blog.csdn.net/TruthTracer'
+
+nmap <F9> :AuthorInfoDetect<cr>
+
+
+""""""""""""""""""""""""""""""
+" programming related 
+""""""""""""""""""""""""""""""
+set tags+=./tags,./../tags,./**/tags,tags " which tags files CTRL-] will find 
+set makeef=error.err " the errorfile for :make and :grep 
+
+function! UpdateTags()
+  execute ":!ctags -R --languages=C++ --c++-kinds=+p --fields=+iaS --extra=+q ./"
+  echohl StatusLine | echo "C/C++ tag updated" | echohl None
+endfunction
+"nnoremap <F5> :call UpdateTags()
