@@ -1,4 +1,4 @@
-alias ll='ls $LS_OPTIONS -l'
+alias ll='ls --color=auto -l $LS_OPTIONS'
 alias tmux='tmux -2'
 
 ### ctrl+arrows
