@@ -1,6 +1,6 @@
 dotfiles
 =====
-
+```
 cd dotfiles
 mv .tmux* .vim* .rc.bash ~/
 
@@ -10,3 +10,4 @@ cp pureline/configs/powerline_full_256col.conf ~/.pureline.conf
 vim ~/.bashrc
   source ~/.rc.bash
   source ~/pureline/pureline .pureline.conf
+```
