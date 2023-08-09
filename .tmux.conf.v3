@@ -50,7 +50,7 @@ set -g default-terminal "xterm-256color"
 set -g xterm-keys off
 
 # for putty arrow keys resize panes
-set -g terminal-overrides "xterm*:kUP5=\eOA:kDN5=\eOB:kLFT5=\eOD:kRIT5=\eOC"
+#set -g terminal-overrides "xterm*:kUP5=\eOA:kDN5=\eOB:kLFT5=\eOD:kRIT5=\eOC"
 
 # Fix putty/pietty function key problem, not compatible with other terminals
 #set -g terminal-overrides "xterm*:kUP5=\eOA:kDN5=\eOB:kLFT5=\eOD:kRIT5=\eOC:kf1=\e[11~:kf2=\e[12~:kf3=\e[13~:kf4=\e[14~:kf5=\e[15~:kf6=\e[17~:kf7=\e[18~:kf8=\e[19~:kf9=\e[20~:kf10=\e[21~:kf11=\e[23~:kf12=\e[24~"
