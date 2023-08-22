@@ -305,8 +305,8 @@ set undolevels=4096
 " => Text, tab, folding and indent related
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 set expandtab
-set shiftwidth=4
-set tabstop=4
+set shiftwidth=2
+set tabstop=2
 set softtabstop=5
 set smarttab
 
