@@ -6,7 +6,7 @@
 
 sudo_autopasswd()
 {
-    echo "@Pass06" | sudo -Svp ""
+    echo "PASSWORD" | sudo -Svp ""
     # Default timeout for caching your sudo password: 15 minutes
 
     # If you're uncomfortable entering your password here,
